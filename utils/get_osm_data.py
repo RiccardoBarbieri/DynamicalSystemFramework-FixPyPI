@@ -100,6 +100,62 @@ if __name__ == "__main__":
         len(GRAPH.nodes),
         len(GRAPH.edges),
     )
+
+    # Here it saves also the complete consolidated network without duplicates
+
+    GRAPH = ox.consolidate_intersections(
+        ox.project_graph(GRAPH), tolerance=parser.tolerance
+    )
+    gdf_nodes, gdf_edges = ox.graph_to_gdfs(ox.project_graph(GRAPH, to_latlong=True))
+    gdf_nodes.reset_index(inplace=True)
+    gdf_edges.reset_index(inplace=True)
+
+
+
+
+
+    if parser.allow_duplicates:
+        N_DUPLICATES = 0
+    else:
+        # Check for duplicate edges
+        duplicated_mask = gdf_edges.duplicated(subset=["u", "v"])
+        N_DUPLICATES = duplicated_mask.sum()
+
+    if N_DUPLICATES > 0:
+        logging.warning(
+            "There are %d duplicated edges which will be removed. "
+            "Please look at them in the promped plot.",
+            N_DUPLICATES,
+        )
+        # Plot the graph with duplicated edges in red
+        edge_colors = [
+            RGBA_RED if duplicated_mask.iloc[i] else RGBA_WHITE
+            for i in range(len(gdf_edges))
+        ]
+        ox.plot_graph(GRAPH, edge_color=edge_colors)
+
+        # Remove duplicated edges
+        gdf_edges = gdf_edges.drop_duplicates(subset=["u", "v"])
+
+
+
+    # gdf_edges = gdf_edges[
+    #     ["u", "v", "length", "oneway", "lanes", "highway", "maxspeed", "name"]
+    # ]
+    # gdf_nodes = gdf_nodes[["osmid", "x", "y", "highway"]]
+
+
+    gdf_edges.to_csv("edges_complete.csv", sep=";", index=False)
+    gdf_nodes.to_csv("nodes_complete.csv", sep=";", index=False)
+
+
+
+
+
+
+
+    # Here it filters the network
+
     GRAPH = ox.graph_from_place(
         parser.place, network_type="drive", custom_filter=CUSTOM_FILTER
     )
@@ -123,14 +179,14 @@ if __name__ == "__main__":
     gdf_nodes.reset_index(inplace=True)
     gdf_edges.reset_index(inplace=True)
 
-    # Prepare node dataframe
-    gdf_nodes = gdf_nodes[["osmid", "x", "y", "highway"]]
-    # Prepare edge dataframe
+    # #Prepare node dataframe
+    # gdf_nodes = gdf_nodes[["osmid", "x", "y", "highway"]]
+    # #Prepare edge dataframe
 
-    gdf_edges.to_csv("edges_ALL.csv", sep=";", index=False)
-    gdf_edges = gdf_edges[
-        ["u", "v", "length", "oneway", "lanes", "highway", "maxspeed", "name"]
-    ]
+
+    # gdf_edges = gdf_edges[
+    #     ["u", "v", "length", "oneway", "lanes", "highway", "maxspeed", "name"]
+    # ]
     if parser.allow_duplicates:
         N_DUPLICATES = 0
     else:
@@ -153,9 +209,13 @@ if __name__ == "__main__":
 
         # Remove duplicated edges
         gdf_edges = gdf_edges.drop_duplicates(subset=["u", "v"])
+
+
+
+        
     # Save the data
     place = parser.place.split(",")[0].strip().lower()
-    gdf_nodes.to_csv(f"{place}_nodes.csv", sep=";", index=False)
-    logging.info('Nodes correctly saved in "%s_nodes.csv"', place)
-    gdf_edges.to_csv(f"{place}_edges.csv", sep=";", index=False)
-    logging.info('Edges correctly saved in "%s_edges.csv"', place)
+    gdf_nodes.to_csv(f"{place}_nodes_p.csv", sep=";", index=False)
+    logging.info('Nodes correctly saved in "%s_nodes_p.csv"', place)
+    gdf_edges.to_csv(f"{place}_edges_p.csv", sep=";", index=False)
+    logging.info('Edges correctly saved in "%s_edges_p.csv"', place)
