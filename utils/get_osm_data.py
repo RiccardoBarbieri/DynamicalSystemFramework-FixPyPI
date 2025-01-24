@@ -96,17 +96,20 @@ if __name__ == "__main__":
     logging.info("Custom filter: %s", CUSTOM_FILTER)
     GRAPH = ox.graph_from_place(parser.place, network_type="drive")
     ox.plot_graph(GRAPH, show=False, close=True, save=True, filepath="./original.png")
-    logging.info(
-        "Original network has %d nodes and %d edges.",
-        len(GRAPH.nodes),
-        len(GRAPH.edges),
-    )
+    
 
     # Here it saves also the complete consolidated network without duplicates
 
     GRAPH = ox.consolidate_intersections(
         ox.project_graph(GRAPH), tolerance=parser.tolerance
     )
+    logging.info(
+        "Original network has %d nodes and %d edges.",
+        len(GRAPH.nodes),
+        len(GRAPH.edges),
+    )
+
+    
     gdf_nodes, gdf_edges = ox.graph_to_gdfs(ox.project_graph(GRAPH, to_latlong=True))
     gdf_nodes.reset_index(inplace=True)
     gdf_edges.reset_index(inplace=True)
