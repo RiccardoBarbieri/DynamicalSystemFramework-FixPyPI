@@ -231,6 +231,7 @@ if __name__ == "__main__":
     #         # update the node with new_id
     #         gdf_nodes.loc[index, "osmid_original"] = new_id
 
+
     # assert set(gdf_edges["u_original"].astype(str)).issubset(set(gdf_nodes["osmid_original"].astype(str)))
     # assert set(gdf_edges["v_original"]).issubset(set(gdf_nodes["osmid_original"]))
 
