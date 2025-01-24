@@ -15,6 +15,7 @@ The files are saved in the current directory.
 from argparse import ArgumentParser
 import logging
 import osmnx as ox
+import ast
 
 __version__ = "2025.1.16"
 
@@ -114,6 +115,35 @@ if __name__ == "__main__":
 
 
 
+   # # # # #       ELIMINATES OSMID STRINGS         # # # # # 
+
+
+
+
+
+    # for index, row in gdf_nodes.iterrows():
+    # # if "osmid_original" is a list, keep the first element
+    #     old_list = ast.literal_eval(str(row["osmid_original"]))
+    #     if isinstance(old_list, list):
+    #         new_id = old_list[0]
+    #         # update the edges with u_original or v_original in old_list, with new_id
+    #         gdf_edges.loc[gdf_edges["u_original"].isin(old_list), "u_original"] = new_id
+    #         gdf_edges.loc[gdf_edges["v_original"].isin(old_list), "v_original"] = new_id
+    #         # update the node with new_id
+    #         gdf_nodes.loc[index, "osmid_original"] = new_id
+
+    # assert set(gdf_edges["u_original"].astype(str)).issubset(set(gdf_nodes["osmid_original"].astype(str)))
+    # assert set(gdf_edges["v_original"]).issubset(set(gdf_nodes["osmid_original"]))
+
+
+
+
+
+
+
+
+
+
     if parser.allow_duplicates:
         N_DUPLICATES = 0
     else:
@@ -145,10 +175,11 @@ if __name__ == "__main__":
     # gdf_nodes = gdf_nodes[["osmid", "x", "y", "highway"]]
 
 
+
     gdf_edges.to_csv("edges_complete.csv", sep=";", index=False)
     gdf_nodes.to_csv("nodes_complete.csv", sep=";", index=False)
 
-
+    
 
 
 
@@ -178,6 +209,38 @@ if __name__ == "__main__":
     # notice that osmnid is the index of the gdf_nodes DataFrame, so take it as a column
     gdf_nodes.reset_index(inplace=True)
     gdf_edges.reset_index(inplace=True)
+
+
+
+
+   # # # # #       ELIMINATES OSMID STRINGS         # # # # # 
+
+
+
+
+
+
+    # for index, row in gdf_nodes.iterrows():
+    # # if "osmid_original" is a list, keep the first element
+    #     old_list = ast.literal_eval(str(row["osmid_original"]))
+    #     if isinstance(old_list, list):
+    #         new_id = old_list[0]
+    #         # update the edges with u_original or v_original in old_list, with new_id
+    #         gdf_edges.loc[gdf_edges["u_original"].isin(old_list), "u_original"] = new_id
+    #         gdf_edges.loc[gdf_edges["v_original"].isin(old_list), "v_original"] = new_id
+    #         # update the node with new_id
+    #         gdf_nodes.loc[index, "osmid_original"] = new_id
+
+    # assert set(gdf_edges["u_original"].astype(str)).issubset(set(gdf_nodes["osmid_original"].astype(str)))
+    # assert set(gdf_edges["v_original"]).issubset(set(gdf_nodes["osmid_original"]))
+
+
+
+
+
+
+
+
 
     # #Prepare node dataframe
     # gdf_nodes = gdf_nodes[["osmid", "x", "y", "highway"]]
