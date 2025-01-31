@@ -16,6 +16,7 @@ from argparse import ArgumentParser
 import logging
 import osmnx as ox
 import ast
+import networkx as nx
 
 __version__ = "2025.1.16"
 
@@ -109,6 +110,7 @@ if __name__ == "__main__":
         len(GRAPH.edges),
     )
 
+    print(nx.is_strongly_connected(GRAPH))
     
     gdf_nodes, gdf_edges = ox.graph_to_gdfs(ox.project_graph(GRAPH, to_latlong=True))
     gdf_nodes.reset_index(inplace=True)
@@ -174,7 +176,7 @@ if __name__ == "__main__":
     gdf_nodes.reset_index(inplace=True)
     gdf_edges.reset_index(inplace=True)
 
-
+    print(nx.is_strongly_connected(GRAPH))
 
 
    # # # # #       ELIMINATES OSMID STRINGS         # # # # # 
