@@ -699,9 +699,9 @@ namespace dsm {
     }
     // Move transport capacity agents from each node
     std::for_each(
-#ifndef __APPLE__
-        std::execution::par_unseq,
-#endif
+// #ifndef __APPLE__
+//         std::execution::par_unseq,
+// #endif
         this->m_graph.nodeSet().begin(),
         this->m_graph.nodeSet().end(),
         [this](const auto& it) {

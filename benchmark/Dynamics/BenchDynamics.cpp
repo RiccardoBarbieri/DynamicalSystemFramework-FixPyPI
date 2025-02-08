@@ -13,10 +13,13 @@ using Bench = sb::Bench<long long int>;
 
 int main() {
   Graph graph{};
-  graph.importMatrix("../test/data/matrix.dat", false);
-  for (const auto& [streetId, street] : graph.streetSet()) {
-    street->setMaxSpeed(13.9);
-  }
+  graph.importOSMNodes("../test/data/forlì_nodes.csv");
+  graph.importOSMEdges("../test/data/forlì_edges.csv");
+  graph.buildAdj();
+  // graph.importMatrix("../test/data/matrix.dat", false);
+  // for (const auto& [streetId, street] : graph.streetSet()) {
+  //   street->setMaxSpeed(13.9);
+  // }
 
   Itinerary it1{0, 118};
   Itinerary it2{4, 115};
@@ -29,7 +32,7 @@ int main() {
   dynamics.addItinerary(it3);
   dynamics.addItinerary(it4);
 
-  const int n_rep{100};
+  const int n_rep{1};
   Bench b1(n_rep);
   std::cout << "Benchmarking updatePaths\n";
   dynamics.updatePaths();
