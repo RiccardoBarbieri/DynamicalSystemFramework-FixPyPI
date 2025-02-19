@@ -70,9 +70,16 @@ namespace dsm {
   /// @tparam Size, The type of the graph's capacity. It must be an unsigned integral type.
   template <typename agent_t>
   class Dynamics {
-  private:
+  protected:
     std::map<Id, std::unique_ptr<agent_t>> m_agents;
+
+  private:
     std::unordered_map<Id, std::unique_ptr<Itinerary>> m_itineraries;
+
+  protected:
+    std::vector<std::unique_ptr<agent_t>> m_agentsToAdd;
+
+  private:
     std::function<double(const RoadNetwork*, Id, Id)> m_weightFunction;
     double m_weightTreshold;
     bool m_bCacheEnabled;
@@ -299,7 +306,7 @@ namespace dsm {
     const std::map<Id, std::unique_ptr<agent_t>>& agents() const { return m_agents; }
     /// @brief Get the number of agents currently in the simulation
     /// @return Size The number of agents
-    Size nAgents() const { return m_agents.size(); }
+    Size nAgents() const { return m_agents.size() + m_agentsToAdd.size(); }
     /// @brief Get the time
     /// @return Time The time
     Time time() const { return m_time; }
@@ -442,7 +449,12 @@ namespace dsm {
       throw std::invalid_argument(Logger::buildExceptionMessage(
           std::format("Agent with id {} already exists.", agent->id())));
     }
-    m_agents.emplace(agent->id(), std::move(agent));
+    if (agent->streetId().has_value()) {
+      m_agents.emplace(agent->id(), std::move(agent));
+    } else {
+      m_agentsToAdd.push_back(std::move(agent));
+    }
+    // m_agents.emplace(agent->id(), std::move(agent));
     // Logger::info(std::format("Added agent with id {} from node {} to node {}",
     //                           m_agents.rbegin()->first,
     //                           m_agents.rbegin()->second->srcNodeId().value_or(-1),

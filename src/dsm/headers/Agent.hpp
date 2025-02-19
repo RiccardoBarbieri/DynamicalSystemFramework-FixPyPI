@@ -32,8 +32,8 @@ namespace dsm {
   private:
     Id m_id;
     std::vector<Id> m_trip;
-    std::optional<Id> m_streetId;
     std::optional<Id> m_srcNodeId;
+    std::optional<Id> m_streetId;
     std::optional<Id> m_nextStreetId;
     delay_t m_delay;
     double m_speed;
@@ -48,12 +48,13 @@ namespace dsm {
     /// @param srcNodeId Optional, The id of the source node of the agent
     Agent(Id id,
           std::optional<Id> itineraryId = std::nullopt,
-          std::optional<Id> srcNodeId = std::nullopt);
+          std::optional<Id> srcNodeId = std::nullopt,
+          std::optional<Id> streetId = std::nullopt);
     /// @brief Construct a new Agent object
     /// @param id The agent's id
     /// @param itineraryIds The agent's itinerary
     /// @param srcNodeId Optional, The id of the source node of the agent
-    Agent(Id id, std::vector<Id> const& trip, std::optional<Id> srcNodeId = std::nullopt);
+    Agent(Id id, std::vector<Id> const& trip, std::optional<Id> srcNodeId = std::nullopt, std::optional<Id> streetId = std::nullopt);
     /// @brief Set the street occupied by the agent
     /// @param streetId The id of the street currently occupied by the agent
     void setStreetId(Id streetId);
@@ -140,11 +141,12 @@ namespace dsm {
 
   template <typename delay_t>
     requires(is_numeric_v<delay_t>)
-  Agent<delay_t>::Agent(Id id, std::optional<Id> itineraryId, std::optional<Id> srcNodeId)
+  Agent<delay_t>::Agent(Id id, std::optional<Id> itineraryId, std::optional<Id> srcNodeId, std::optional<Id> streetId)
       : m_id{id},
         m_trip{itineraryId.has_value() ? std::vector<Id>{itineraryId.value()}
                                        : std::vector<Id>{}},
         m_srcNodeId{srcNodeId},
+        m_streetId{streetId},
         m_nextStreetId{std::nullopt},
         m_delay{0},
         m_speed{0.},
@@ -154,10 +156,11 @@ namespace dsm {
 
   template <typename delay_t>
     requires(is_numeric_v<delay_t>)
-  Agent<delay_t>::Agent(Id id, std::vector<Id> const& trip, std::optional<Id> srcNodeId)
+  Agent<delay_t>::Agent(Id id, std::vector<Id> const& trip, std::optional<Id> srcNodeId, std::optional<Id> streetId)
       : m_id{id},
         m_trip{trip},
         m_srcNodeId{srcNodeId},
+        m_streetId{streetId},
         m_nextStreetId{std::nullopt},
         m_delay{0},
         m_speed{0.},
