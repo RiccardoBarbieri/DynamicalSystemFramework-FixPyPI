@@ -135,6 +135,8 @@ namespace dsm {
       requires(std::is_convertible_v<typename TContainer::value_type, Id>)
     void setDestinationNodes(TContainer const& destinationNodes, bool updatePaths = true);
 
+    virtual void setAgentSpeed(Size agentId) = 0;
+
     /// @brief Update the paths of the itineraries based on the given weight function
     void updatePaths();
     /// @brief Add a set of agents to the simulation

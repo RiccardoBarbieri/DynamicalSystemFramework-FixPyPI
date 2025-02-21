@@ -86,8 +86,6 @@ namespace dsm {
     /// @param seed The seed for the random number generator (default is std::nullopt)
     Dynamics(RoadNetwork& graph, std::optional<unsigned int> seed = std::nullopt);
 
-    virtual void setAgentSpeed(Size agentId) = 0;
-
     /// @brief Add an agent to the simulation
     /// @param agent std::unique_ptr to the agent
     void addAgent(std::unique_ptr<agent_t> agent);
