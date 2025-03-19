@@ -12,17 +12,22 @@ if (CMAKE_BUILD_TYPE MATCHES "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -march=native -flto=auto")
 endif()
 
+# Find dependencies
 find_package(TBB REQUIRED CONFIG)
+find_package(NLopt REQUIRED)
 
 file(GLOB SOURCES "src/dsm/sources/*.cpp" "src/dsm/utility/*.cpp")
 
 add_library(dsm STATIC ${SOURCES})
+
 target_include_directories(dsm PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/headers>
     $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(dsm PRIVATE TBB::tbb)
 
+target_link_libraries(dsm PRIVATE TBB::tbb NLopt::nlopt)  # Link NLopt
+
+# Installation settings
 install(TARGETS dsm
         EXPORT dsmConfig
         ARCHIVE DESTINATION lib

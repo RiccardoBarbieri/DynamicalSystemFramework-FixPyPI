@@ -26,6 +26,7 @@
 #include <variant>
 
 #include <tbb/tbb.h>
+#include <nlopt.hpp>
 
 #include "Dynamics.hpp"
 #include "Agent.hpp"
@@ -39,6 +40,35 @@
 static auto constexpr g_cacheFolder = "./.dsmcache/";
 
 namespace dsm {
+  struct VarianceData {
+    const std::vector<double>* q;
+};
+
+// Objective function: compute the variance of y = x_i / q_i.
+// Matches NLopt signature: f(unsigned n, const double *x, double *grad, void *data)
+static double variance(unsigned n, const double* x, double* grad, void* data) {
+    VarianceData* vdata = static_cast<VarianceData*>(data);
+    const std::vector<double>& q = *(vdata->q);
+
+    double sum_y = 0.0, sum_y2 = 0.0;
+    for (unsigned i = 0; i < n; i++) {
+        double y = x[i] / q[i];
+        sum_y  += y;
+        sum_y2 += y * y;
+    }
+    double mean_y = sum_y / n;
+    return (sum_y2 / n) - (mean_y * mean_y);
+}
+
+// Constraint function: the sum of x_i must equal 1.
+// Also conforms to the signature: f(unsigned n, const double *x, double *grad, void *data)
+static double sum_constraint(unsigned n, const double* x, double* grad, void* data) {
+    double sum_x = 0.0;
+    for (unsigned i = 0; i < n; i++) {
+        sum_x += x[i];
+    }
+    return sum_x - 1.0;
+}
   /// @brief The RoadDynamics class represents the dynamics of the network.
   /// @tparam delay_t The type of the agent's delay
   template <typename delay_t>
@@ -351,7 +381,7 @@ namespace dsm {
         this->graph().edges().cbegin(),
         this->graph().edges().cend(),
         [this](auto const& pair) {
-          m_streetTails.emplace(pair.first, std::array<double, 2>{0., 0.});
+          m_streetTails[pair.first] = {0., 0.};
           m_turnCounts.emplace(pair.first, std::array<unsigned long long, 4>{0, 0, 0, 0});
           // fill turn mapping as [pair.first, [left street Id, straight street Id, right street Id, U self street Id]]
           m_turnMapping.emplace(pair.first, std::array<long, 4>{-1, -1, -1, -1});
@@ -1000,11 +1030,9 @@ namespace dsm {
                    this->graph().adjacencyMatrix().getCol(pNode->id())) {
                 auto const streetId = sourceId * N + pNode->id();
                 auto const& pStreet{this->graph().edge(streetId)};
-                if (bUpdateData &&
-                    (this->graph().node(pStreet->source())->isTrafficLight() ||
-                     this->graph().node(pStreet->target())->isTrafficLight())) {
+                if (bUpdateData && pNode->isTrafficLight()) {
                       std::array<double, 2> tails{0., 0.};
-                      std::array<int, 2> nl{0, 0};
+                      std::array<double, 2> nl{0., 0.};
                   for (auto i{0}; i < pStreet->nLanes(); ++i) {
                     auto const direction{pStreet->laneMapping().at(i)};
                     switch (direction) {
@@ -1027,7 +1055,7 @@ namespace dsm {
                     }
                   }
                   m_streetTails[streetId][0] += nl[0] > 0 ? tails[0] / nl[0] : 0.;
-                      m_streetTails[streetId][1] += nl[1] > 0 ? tails[1] / nl[1] : 0.;
+                  m_streetTails[streetId][1] += nl[1] > 0 ? tails[1] / nl[1] : 0.;
                 }
                 m_evolveStreet(pStreet, reinsert_agents);
 
@@ -1195,9 +1223,9 @@ namespace dsm {
         }
         // std::clog << "NL:" << nl[0] << " " << nl[1] << std::endl;
       }
-      std::clog << "Traffic Light: " << nodeId << std::endl;
-      std::clog << "Priority: " << prioritySum[0] << " " << prioritySum[1] << std::endl;
-      std::clog << "Non-priority: " << nonPrioritySum[0] << " " << nonPrioritySum[1] << std::endl;
+      // std::clog << "Traffic Light: " << nodeId << std::endl;
+      // std::clog << "Priority: " << prioritySum[0] << " " << prioritySum[1] << std::endl;
+      // std::clog << "Non-priority: " << nonPrioritySum[0] << " " << nonPrioritySum[1] << std::endl;
       
       inputGreenSum /= meanGreenFraction;
       inputRedSum /= meanRedFraction;
@@ -1272,26 +1300,64 @@ namespace dsm {
         // } else if ((inputDifference < 0) && (greenTime > delta)) {
         //   tl.decreaseGreenTimes(delta);
         // }
+        ++prioritySum[0];
+        ++prioritySum[1];
+        ++nonPrioritySum[0];
+        ++nonPrioritySum[1];
+        
         auto totSum = prioritySum[0] + prioritySum[1] + nonPrioritySum[0] +
                             nonPrioritySum[1];
-        if (totSum == 0) {
-          totSum = 1;
-        }
+        // Logger::info(std::format("Old values: {} {} - {} {}", prioritySum[0], prioritySum[1], nonPrioritySum[0], nonPrioritySum[1]));
+        // Logger::info(std::format("Total sum: {}", totSum));
         // Normalize all
-        prioritySum[0] *= (1. - alpha) / totSum;
-        prioritySum[1] *= (1. - alpha) / totSum;
-        nonPrioritySum[0] *= (1. - alpha) / totSum;
-        nonPrioritySum[1] *= (1. - alpha) / totSum;
+        prioritySum[0] /= totSum;
+        prioritySum[1] /= totSum;
+        nonPrioritySum[0] /= totSum;
+        nonPrioritySum[1] /= totSum;
 
-        prioritySum[0] += priorityNL[0];
-        prioritySum[1] += priorityNL[1];
-        nonPrioritySum[0] += nonPriorityNL[0];
-        nonPrioritySum[1] += nonPriorityNL[1];
+        std::vector<double> q{prioritySum[0], prioritySum[1], nonPrioritySum[0], nonPrioritySum[1]};
+        std::vector<double> c{priorityNL[0], priorityNL[1], nonPriorityNL[0], nonPriorityNL[1]};
+
+        VarianceData vdata;
+        vdata.q = &q;
+
+        nlopt::opt opt(nlopt::LN_COBYLA, 4);
+        opt.set_min_objective(variance, &vdata);
+        opt.add_equality_constraint(sum_constraint, NULL, 1e-8);
+         // Set bounds: c[i] < x[i] < 1
+        std::vector<double> lower_bounds = c;
+        std::vector<double> upper_bounds(4, 1.0);
+        opt.set_lower_bounds(lower_bounds);
+        opt.set_upper_bounds(upper_bounds);
+
+        // Initial guess: Equal distribution
+        std::vector<double> x(4, alpha);
+
+        // Set optimization stopping criteria
+        opt.set_xtol_rel(1e-6);
+
+        // Run optimization
+        double minf; // Minimum function value
+        nlopt::result result = opt.optimize(x, minf);
+        if (result < 0) {
+          Logger::error("NO BUONO!");
+        }
+        Logger::info(std::format("Found minimum at f = {}", minf));
+        Logger::info(std::format("Old values: {} {} - {} {}", prioritySum[0], prioritySum[1], nonPrioritySum[0], nonPrioritySum[1]));
+        Logger::info(std::format("Minimum: {} {} - {} {}", c[0], c[1], c[2], c[3]));
+        Logger::info(std::format("Values: {} {} - {} {}", x[0], x[1], x[2], x[3]));
+        prioritySum[0] = x[0];
+        prioritySum[1] = x[1];
+        nonPrioritySum[0] = x[2];
+        nonPrioritySum[1] = x[3];
+
+
 
         prioritySum[0] *= tl.cycleTime();
         prioritySum[1] *= tl.cycleTime();
         nonPrioritySum[0] *= tl.cycleTime();
         nonPrioritySum[1] *= tl.cycleTime();
+
         // print previous phases
         // std::clog << "Traffic Light " << nodeId << std::endl;
         // std::clog << "Priority: " << prioritySum[0] << " " << prioritySum[1] << std::endl;

@@ -26,11 +26,11 @@ namespace dsm {
     //                             cycle.phase(),
     //                             m_cycleTime));
     // }
-    Logger::info(std::format("Setting cycle for street {} - Direction {} - Green time {} - Phase {}",
-                             streetId,
-                             static_cast<uint8_t>(direction),
-                             cycle.greenTime(),
-                             cycle.phase()));
+    // Logger::info(std::format("Setting cycle for street {} - Direction {} - Green time {} - Phase {}",
+    //                          streetId,
+    //                          static_cast<uint8_t>(direction),
+    //                          cycle.greenTime(),
+    //                          cycle.phase()));
     if (direction == Direction::UTURN) {
       direction = Direction::LEFT;
     }
